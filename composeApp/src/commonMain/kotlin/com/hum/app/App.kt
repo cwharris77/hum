@@ -17,6 +17,7 @@ fun App() {
     }
 
     HumTheme {
+        RequestMicrophonePermission()
         CircleScreen(songState = songState)
     }
 }
