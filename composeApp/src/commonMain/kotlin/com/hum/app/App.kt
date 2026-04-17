@@ -1,27 +1,22 @@
 package com.hum.app
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.remember
+import com.hum.app.audio.BeatGenerator
+import com.hum.app.audio.createAudioEngine
+import com.hum.app.ui.CircleScreen
+import com.hum.app.ui.theme.HumTheme
 
 @Composable
 fun App() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF1A1A2E)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Hum",
-            color = Color(0xFFEFEFEF),
-            fontSize = 24.sp
-        )
+    val audioEngine = remember { createAudioEngine() }
+    val songState = remember {
+        val beat = BeatGenerator.generateMetronome(bpm = 90, bars = 8)
+        audioEngine.loadBeat(beat)
+        SongState(audioEngine)
+    }
+
+    HumTheme {
+        CircleScreen(songState = songState)
     }
 }

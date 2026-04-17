@@ -52,8 +52,9 @@ fun RecordButton(
         if (isRecording) {
             val minutes = elapsedSeconds / 60
             val seconds = elapsedSeconds % 60
+            val secondsPadded = if (seconds < 10) "0$seconds" else "$seconds"
             Text(
-                text = "%d:%02d".format(minutes, seconds),
+                text = "$minutes:$secondsPadded",
                 color = Color.White,
                 fontSize = 16.sp,
             )
