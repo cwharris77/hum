@@ -36,6 +36,8 @@ class SongState(private val audioEngine: AudioEngine) {
 
     private fun startRecording() {
         if (isRecording) return
+        audioEngine.stopPlayback()
+        playingCircleId = null
         val id = audioEngine.startRecording()
         currentRecordingId = id
         isRecording = true

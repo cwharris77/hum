@@ -1,7 +1,10 @@
 package com.hum.app.audio
 
+import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaPlayer
@@ -19,7 +22,7 @@ class AndroidAudioEngine : AudioEngine {
     private var recordingThread: Thread? = null
     private var playbackPlayer: MediaPlayer? = null
 
-    private var _isRecording = false
+    @Volatile private var _isRecording = false
     private var _isPlaying = false
 
     private val sampleRate = 44100
@@ -54,6 +57,7 @@ class AndroidAudioEngine : AudioEngine {
     override fun startRecording(): String {
         val id = "take_${System.currentTimeMillis()}"
         val pcmFile = File(recordingsDir, "$id.pcm")
+        val monitoringEnabled = headphonesConnected()
 
         recorder = AudioRecord(
             MediaRecorder.AudioSource.MIC,
@@ -63,27 +67,29 @@ class AndroidAudioEngine : AudioEngine {
             bufferSize,
         )
 
-        monitorTrack = AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setSampleRate(sampleRate)
-                    .setEncoding(encoding)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-            )
-            .setBufferSizeInBytes(bufferSize)
-            .setTransferMode(AudioTrack.MODE_STREAM)
-            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-            .build()
+        if (monitoringEnabled) {
+            monitorTrack = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setSampleRate(sampleRate)
+                        .setEncoding(encoding)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+                .build()
+            monitorTrack?.play()
+        }
 
         recorder?.startRecording()
-        monitorTrack?.play()
         _isRecording = true
 
         recordingThread = Thread {
@@ -103,6 +109,17 @@ class AndroidAudioEngine : AudioEngine {
         }.also { it.start() }
 
         return id
+    }
+
+    private fun headphonesConnected(): Boolean {
+        val am = PlatformContext.appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { device ->
+            device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+        }
     }
 
     override fun stopRecording() {
